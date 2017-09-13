@@ -3,7 +3,7 @@
  */
 import { dispatchRequest } from 'state/data-layer/wpcom-http/utils';
 import { http } from 'state/data-layer/wpcom-http/actions';
-import { isRequestingMedia, isRequestingMediaItem } from 'state/selectors';
+import { isRequestingMedia } from 'state/selectors';
 import { MEDIA_REQUEST, MEDIA_ITEM_REQUEST } from 'state/action-types';
 import {
 	failMediaRequest,
@@ -48,11 +48,8 @@ export function requestMedia( { dispatch, getState }, { siteId, query } ) {
 		.catch( () => dispatch( failMediaRequest( siteId, query ) ) );
 }
 
-export function handleMediaItemRequest( { dispatch, getState }, action ) {
+export function handleMediaItemRequest( { dispatch }, action ) {
 	const { mediaId, query, siteId } = action;
-	if ( isRequestingMediaItem( getState(), siteId, mediaId ) ) {
-		return;
-	}
 
 	dispatch( requestingMediaItem( siteId, query ) );
 
