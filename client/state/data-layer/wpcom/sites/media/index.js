@@ -1,8 +1,10 @@
 /**
  * Internal dependencies
  */
-import { MEDIA_REQUEST, MEDIA_ITEM_REQUEST } from 'state/action-types';
+import { dispatchRequest } from 'state/data-layer/wpcom-http/utils';
+import { http } from 'state/data-layer/wpcom-http/actions';
 import { isRequestingMedia, isRequestingMediaItem } from 'state/selectors';
+import { MEDIA_REQUEST, MEDIA_ITEM_REQUEST } from 'state/action-types';
 import {
 	failMediaRequest,
 	failMediaItemRequest,
@@ -66,7 +68,33 @@ export function requestMediaItem( { dispatch, getState }, { siteId, mediaId } ) 
 		.catch( () => dispatch( failMediaItemRequest( siteId, mediaId ) ) );
 }
 
+function handleMediaItemRequest( { dispatch, getState }, action ) {
+	const { mediaId, query, siteId } = action;
+	if ( isRequestingMediaItem( getState(), siteId, mediaId ) ) {
+		return;
+	}
+
+	dispatch( requestingMediaItem( siteId, query ) );
+
+	log( 'Request media item %d for site %d', mediaId, siteId );
+
+	dispatch(
+		http(
+			{
+				apiVersion: '1.2',
+				method: 'GET',
+				path: `/sites/${ siteId }/media/${ mediaId }`,
+				query,
+			},
+			action
+		)
+	);
+}
+
 export default {
 	[ MEDIA_REQUEST ]: [ requestMedia ],
-	[ MEDIA_ITEM_REQUEST ]: [ requestMediaItem ],
+	[ MEDIA_ITEM_REQUEST ]: [
+		requestMediaItem,
+		dispatchRequest( handleMediaItemRequest, ()=>{}, () => {} ),
+	],
 };
