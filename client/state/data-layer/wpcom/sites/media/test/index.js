@@ -6,64 +6,89 @@ import { expect } from 'chai';
 /**
  * Internal dependencies
  */
-import useNock from 'test/helpers/use-nock';
+import { MEDIA_ITEM_REQUEST } from 'state/action-types';
+import { http } from 'state/data-layer/wpcom-http/actions';
 import { useSandbox } from 'test/helpers/use-sinon';
+import { handleMediaItemRequest, receiveMediaItem, receiveMediaItemError } from '../';
 import {
-	requestingMediaItem, successMediaItemRequest, failMediaItemRequest, receiveMedia
+	failMediaItemRequest,
+	receiveMedia,
+	requestingMediaItem,
+	successMediaItemRequest
 } from 'state/media/actions';
-import { requestMediaItem } from '../';
 
-describe( 'wpcom-api', () => {
+describe( 'handleMediaItemRequest', () => {
 	let dispatch;
 
 	useSandbox( sandbox => ( dispatch = sandbox.spy() ) );
 
-	describe( 'media item request', () => {
-		const getState = () => ( {
-			media: {
-				mediaItemRequests: {
-					2916284: {
-						15: true
-					}
-				}
-			}
-		} );
+	it( 'should dispatch an http action', () => {
+		const siteId = 12345;
+		const mediaId = 67890;
+		const action = {
+			type: MEDIA_ITEM_REQUEST,
+			mediaId,
+			siteId,
+		};
+		handleMediaItemRequest( { dispatch }, action );
+		expect( dispatch ).to.have.been.calledTwice;
+		expect( dispatch ).to.have.been.calledWith(
+			requestingMediaItem( siteId )
+		);
+		expect( dispatch ).to.have.been.calledWith(
+			http(
+				{
+					apiVersion: '1.2',
+					method: 'GET',
+					path: `/sites/${ siteId }/media/${ mediaId }`,
+				},
+				action
+			)
+		);
+	} );
+} );
 
-		useNock( nock => (
-			nock( 'https://public-api.wordpress.com:443' )
-				.persist()
-				.get( '/rest/v1.2/sites/2916284/media/10' )
-				.reply( 200, {
-					ID: 10,
-					title: 'media title'
-				} )
-				.get( '/rest/v1.2/sites/2916284/media/20' )
-				.reply( 400, {} )
-		) );
+describe( 'receiveMediaItem', () => {
+	let dispatch;
 
-		it( 'should not dispatch anything if the request is in flight', () => {
-			requestMediaItem( { dispatch, getState }, { siteId: 2916284, mediaId: 15 } );
-			expect( dispatch ).to.not.have.been.called;
-		} );
+	useSandbox( sandbox => ( dispatch = sandbox.spy() ) );
 
-		it( 'should dispatch REQUESTING action when request triggers', () => {
-			requestMediaItem( { dispatch, getState }, { siteId: 2916284, mediaId: 10 } );
-			expect( dispatch ).to.have.been.calledWith( requestingMediaItem( 2916284, 10 ) );
-		} );
+	it( 'should dispatch media recieve actions', () => {
+		const siteId = 12345;
+		const mediaId = 67890;
+		const action = {
+			type: MEDIA_ITEM_REQUEST,
+			mediaId,
+			siteId,
+		};
+		const media = { ID: 91827364 };
+		receiveMediaItem( { dispatch }, action, media );
+		expect( dispatch ).to.have.been.calledTwice,
+		expect( dispatch ).to.have.been.calledWith(
+			receiveMedia( siteId, media )
+		);
+		expect( dispatch ).to.have.been.calledWith(
+			successMediaItemRequest( siteId, mediaId )
+		);
+	} );
+} );
 
-		it( 'should dispatch SUCCESS action when request completes', () => {
-			return requestMediaItem( { dispatch, getState }, { siteId: 2916284, mediaId: 10 } )
-				.then( () => {
-					expect( dispatch ).to.have.been.calledWith( successMediaItemRequest( 2916284, 10 ) );
-					expect( dispatch ).to.have.been.calledWith( receiveMedia( 2916284, { ID: 10, title: 'media title' } ) );
-				} );
-		} );
+describe( 'receiveMediaItemError', () => {
+	let dispatch;
 
-		it( 'should dispatch FAILURE action when request fails', () => {
-			return requestMediaItem( { dispatch, getState }, { siteId: 2916284, mediaId: 20 } )
-				.catch( () => {
-					expect( dispatch ).to.have.been.calledWith( failMediaItemRequest( 2916284, 20 ) );
-				} );
-		} );
+	useSandbox( sandbox => ( dispatch = sandbox.spy() ) );
+
+	it( 'should dispatch failure', () => {
+		const siteId = 12345;
+		const mediaId = 67890;
+		const action = {
+			type: MEDIA_ITEM_REQUEST,
+			mediaId,
+			siteId,
+		};
+		receiveMediaItemError( { dispatch }, action );
+		expect( dispatch ).to.have.been.calledWith(
+			failMediaItemRequest( siteId, mediaId )
+		);
 	} );
 } );
