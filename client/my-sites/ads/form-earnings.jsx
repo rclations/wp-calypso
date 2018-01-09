@@ -150,14 +150,38 @@ class AdsFormEarnings extends Component {
 	getStatus( status ) {
 		const { translate } = this.props;
 		const statuses = {
-			0: translate( 'Unpaid' ),
-			1: translate( 'Paid' ),
-			2: translate( 'a8c-only' ),
-			3: translate( 'Pending (Missing Tax Info)' ),
-			4: translate( 'Pending (Invalid PayPal)' ),
+			0: {
+				name: translate( 'Unpaid' ),
+				tooltip: translate( 'Payment is on hold until the end of the current month.' ),
+			},
+			1: {
+				name: translate( 'Paid' ),
+				tooltip: translate( 'Payment has been processed through PayPal.' ),
+			},
+			2: {
+				name: translate( 'a8c-only' ),
+			},
+			3: {
+				name: translate( 'Pending (Missing Tax Info)' ),
+				tooltip: translate(
+					'Payment is pending due to missing information. ' +
+						'You can provide tax information in the settings screen.'
+				),
+			},
+			4: {
+				name: translate( 'Pending (Invalid PayPal)' ),
+				tooltip: translate(
+					'Payment processing has failed due to invalid PayPal address. ' +
+						'You can correct the PayPal address in the settings screen.'
+				),
+			},
 		};
 
-		return statuses[ status ] ? statuses[ status ] : '?';
+		return (
+			<span title={ statuses[ status ].tooltip ? statuses[ status ].tooltip : '' }>
+				{ statuses[ status ] ? statuses[ status ].name : '?' }
+			</span>
+		);
 	}
 
 	payoutNotice() {
